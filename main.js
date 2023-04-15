@@ -28,6 +28,7 @@ const sendMailer = async () => {
             text: 'Test',
             html: '<h1>Test</h1>'
         }
+
         const result = await transport.sendMail(mailOptions)
         return result;
     } catch (e) {
