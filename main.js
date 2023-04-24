@@ -1,39 +1,33 @@
-import info from './config/index.mjs'
-import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
+import { sendMail, isValidEmail } from './function.js';
+import fs from 'fs';
+import xlsx from 'xlsx';
 
-const { CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, REFRESH_TOKEN } = info
+const directoryPath = './data/excel';
+const databin = [];
 
-const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN })
-
-const sendMailer = async () => {
-    try {
-        const accessToken = await oAuth2Client.getAccessToken()
-        const transport = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: 'dulieu.vblc@gmail.com',
-                clientId: CLIENT_ID,
-                clientSecret: CLIENT_SECRET,
-                refreshToken: REFRESH_TOKEN,
-                accessToken: accessToken
-            }
-        })
-        const mailOptions = {
-            from: 'Hê hê',
-            to: 'noxaov.real@gmail.com',
-            subject: 'Test',
-            text: 'Test',
-            html: '<h1>Test</h1>'
-        }
-
-        const result = await transport.sendMail(mailOptions)
-        return result;
-    } catch (e) {
-        return e
+fs.readdir(directoryPath, (error, files) => {
+    if (error) {
+        console.error(error);
+    } else {
+        const excelFiles = files.filter(file => file.endsWith('.xlsx'));
+        excelFiles.forEach((filename) => {
+            let filePath = `${directoryPath}/${filename}`;
+            let workbook = xlsx.readFile(filePath);
+            let worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            let data = xlsx.utils.sheet_to_json(worksheet);
+            console.log(`Total ${data.length} rows`);
+            data.forEach((array) => {
+                if (databin.indexOf(array.Email) === -1 && isValidEmail(array.Email)) {
+                    databin.push(array.Email);
+                }
+            });
+        });
+        console.log(`${databin.length} invalid email..\nSending email...`);
+        console.log(databin);
+        databin.forEach((email) => sendMail(email, {
+            'subject': 'Xin chào djtmemay',
+            'text': 'cmm',
+            'html': '<h1> ĐỊT MẸ MÀY</h1>'
+        }))
     }
-}
-
-sendMailer().then(result => console.log('Email sent...', result)).catch(error => console.log(error.message))
+});
